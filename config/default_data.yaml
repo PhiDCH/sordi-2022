@@ -1,0 +1,20 @@
+hydra:
+  output_subdir: Null
+  run:
+    dir: .
+  searchpath:
+    - pkg://config
+
+# data_folder: /home/phidch/Downloads/phi_ws/src/sordi-2022/data/SORDI_2022_Industrial_Rooms/SORDI_2022_h4022_industrial rooms 360p
+data_folder: /home/phidch/Downloads/phi_ws/src/sordi-2022/data/SORDI_2022_Regensburg_plant/SORDI_2022_h4024_regensburg plant 360p
+image_folder: ${data_folder}/images
+label_folder: ${data_folder}/labels/json
+
+
+
+defaults:
+  - _self_
+
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+

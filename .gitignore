@@ -5,5 +5,7 @@ __pycache__
 *.pth
 
 *.jpg
+*.png
+*.jpeg
 *.avi
 *.mp4
