@@ -2,7 +2,12 @@
 __pycache__
 *.pyc
 
+SORDI-Data-Pipeline-Reader
 data
+
+YOLOX/YOLOX_outputs
+YOLOX/yolox.egg-info
+YOLOX/build
 
 *.pth
 
