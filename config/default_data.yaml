@@ -13,7 +13,7 @@ data_folder:
   - data/SORDI_2022_Regensburg_plant/SORDI_2022_h4025_regensburg plant
 
 eval_folder:
-  - data/eval
+  - /home/robotic/Downloads/sordi-2022/eval
 
 
 
