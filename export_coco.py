@@ -113,8 +113,8 @@ def main():
     stat_train = stat.copy()
     stat_val = stat.copy()
 
-    max_num_img_each_split_train = 80
-    max_num_img_each_split_val = 20
+    max_num_img_each_split_train = 5000
+    max_num_img_each_split_val = 1000
     num_img_echh_split = {}
     for r in cur:
         (image_id, fname, label_json, w, h, uncertainty) = r  
@@ -124,35 +124,39 @@ def main():
             num_img_echh_split[split] = 0
         num_img_echh_split[split] += 1
 
-        fname = '/' + '/'.join([r for r in fname.split('/')[-4:]])
+        fname = '/'.join([r for r in fname.split('/')[-4:]])
 
         if num_img_echh_split[split] <= max_num_img_each_split_train:
             images_train.append(create_image_entry(image_id, fname, w, h))
             for lj in json.loads(label_json):
                 (l,t,r,b) = (lj['Left'], lj['Top'], lj['Right'], lj['Bottom'])
+                w,h = r-l, b-t
                 bbox = (l, t, r-l, b-t)
                 area = (r-l)*(b-t)
-                annotations_train.append(create_sub_mask_annotation(image_id, lj['ObjectClassId'], annotation_id , bbox, 0, area))
-                annotation_id += 1
-                if lj['ObjectClassId'] in category: # category.keys()
-                    pass
-                else:
-                    category[lj['ObjectClassId']] = lj['ObjectClassName']
-                stat_train[lj['ObjectClassName']] += 1
+                if area>0 and w>3 and h>3:
+                    annotations_train.append(create_sub_mask_annotation(image_id, lj['ObjectClassId'], annotation_id , bbox, 0, area))
+                    annotation_id += 1
+                    if lj['ObjectClassId'] in category: # category.keys()
+                        pass
+                    else:
+                        category[lj['ObjectClassId']] = lj['ObjectClassName']
+                    stat_train[lj['ObjectClassName']] += 1
 
         elif num_img_echh_split[split] <= max_num_img_each_split_train+max_num_img_each_split_val:
             images_val.append(create_image_entry(image_id, fname, w, h))
             for lj in json.loads(label_json):
                 (l,t,r,b) = (lj['Left'], lj['Top'], lj['Right'], lj['Bottom'])
+                w,h = r-l, b-t
                 bbox = (l, t, r-l, b-t)
                 area = (r-l)*(b-t)
-                annotations_val.append(create_sub_mask_annotation(image_id, lj['ObjectClassId'], annotation_id , bbox, 0, area))
-                annotation_id += 1
-                if lj['ObjectClassId'] in category: # category.keys()
-                    pass
-                else:
-                    category[lj['ObjectClassId']] = lj['ObjectClassName']
-                stat_val[lj['ObjectClassName']] += 1
+                if area>0 and w>3 and h>3:
+                    annotations_val.append(create_sub_mask_annotation(image_id, lj['ObjectClassId'], annotation_id , bbox, 0, area))
+                    annotation_id += 1
+                    if lj['ObjectClassId'] in category: # category.keys()
+                        pass
+                    else:
+                        category[lj['ObjectClassId']] = lj['ObjectClassName']
+                    stat_val[lj['ObjectClassName']] += 1
         else: 
             pass
            
@@ -162,10 +166,10 @@ def main():
 
     save_dict_train = {'info': {"description": "SORDI 2022"}, 'categories': categories, 'annotations': annotations_train, 'images': images_train}
     save_dict_val = {'info': {"description": "SORDI 2022"}, 'categories': categories, 'annotations': annotations_val, 'images': images_val}
-    # with open('data/SORDI/annotations/sordi-non-single-asserts-train500.json', 'w') as f:
-    #     json.dump(save_dict_train, f, indent=4)
-    # with open('data/SORDI/annotations/sordi-non-single-asserts-val500.json', 'w') as f:
-    #     json.dump(save_dict_val, f, indent=4)
+    with open('data/SORDI/annotations/sordi-non-single-asserts-train5000.json', 'w') as f:
+        json.dump(save_dict_train, f, indent=4)
+    with open('data/SORDI/annotations/sordi-non-single-asserts-val5000.json', 'w') as f:
+        json.dump(save_dict_val, f, indent=4)
 
     # with open('data/SORDI/annotations/sordi-single-asserts-train100.json', 'w') as f:
     #     json.dump(save_dict_train, f, indent=4)
