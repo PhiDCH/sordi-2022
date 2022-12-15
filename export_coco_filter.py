@@ -4,6 +4,7 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
+from copy import deepcopy
 
 def create_sub_mask_annotation(image_id, category_id, annotation_id, bbox, is_crowd, area):
     annotation = {
@@ -96,7 +97,7 @@ def plot_bar(stat, title: str = 'template'):
 
 def main():
     conn = create_connection(
-        '/home/robotic/Downloads/phidch_ws/src/bmw-lab/scripts/SORDI-Data-Pipeline-Reader/SORDI-non-single-asserts.sqlite')
+        'SORDI-Data-Pipeline-Reader/SORDI-non-single-asserts.sqlite')
     # conn = create_connection('/home/robotic/Downloads/phidch_ws/src/bmw-lab/scripts/SORDI-Data-Pipeline-Reader/SORDI-single-asserts.sqlite')
 
     sql = '''select rowid, * from frame'''
@@ -110,66 +111,73 @@ def main():
 
     stat = {}
     stat_json = {'num_img': 0}
-    with open('/home/robotic/Downloads/phidch_ws/src/bmw-lab/scripts/sordi-2022/data/eval/objectclasses.json', 'r') as f:
+    with open('data/eval/objectclasses.json', 'r') as f:
         meta_data = json.load(f)
         for meta in meta_data:
             stat[meta['Id']] = {'name': meta['Name'], 'area/imgSize': []}
-    tmp_stat = stat.copy()
-    stat_train = stat.copy()
+    tmp_stat = deepcopy(stat)
+    # stat_train = stat.copy()
 
-    max_num_img = 1
+    max_num_img = 30000
     i = 0
 
-    with open('/home/robotic/Downloads/phidch_ws/src/bmw-lab/scripts/sordi-2022/data/stat/area/all_non_single_assert.json', 'r') as f:
+    filter = None
+    with open('data/stat/industrial/stat.json', 'r') as f:
         filter = json.load(f)
 
     for r in cur:
-        i += 1
-        if i > max_num_img:
-            break
+        # i += 1
+        # if i > max_num_img:
+        #     break
 
         (image_id, fname, label_json, W, H, uncertainty) = r
         fname = '/'.join([r for r in fname.split('/')[-4:]])
 
-        images_train.append(create_image_entry(image_id, fname, W, H))
-        if W == 1280:
-            img_area = 921600
-        else:   
-            img_area = 230400
-        get_img = True
-        tmp = tmp_stat.copy()
-        for lj in json.loads(label_json):
-            id_cls = lj['ObjectClassId']
-            (l, t, r, b) = (lj['Left'], lj['Top'], lj['Right'], lj['Bottom'])
-            w, h = r-l, b-t
-            area = w*h
+        split  = fname.split('/')[-3].split('_')[2]
+        # if split in ['h4022','h4023']:
+        if split in ['h4024','h4025']:
+            images_train.append(create_image_entry(image_id, fname, W, H))
+            img_area = 921600 if W == 1280 else 230400
+        
+            get_img = True
+            tmp = deepcopy(tmp_stat)
+            for lj in json.loads(label_json):
+                id_cls = lj['ObjectClassId']
+                (l, t, r, b) = (lj['Left'], lj['Top'], lj['Right'], lj['Bottom'])
+                w, h = r-l, b-t
+                area = w*h
 
-            if w > 3 and h > 3:
-                ratio = area/img_area
-                if ratio > filter['data'][str(id_cls)]['qual95'][1]:
-                    get_img = False
-                    print('##################### break ', ratio, filter['data'][str(id_cls)]['name'], fname)
-                    break
-                tmp[id_cls]['area/imgSize'].append(ratio)
+                if w > 3 and h > 3:
+                    ratio = area/img_area
+                    if filter:
+                        min_ratio = filter['data'][str(id_cls)]['qual95'][0]
+                        min_ratio = min_ratio if min_ratio else 100/img_area
+                        if ratio > min_ratio:
+                            # get_img = False
+                            tmp[id_cls]['area/imgSize'].append(ratio)
+                    else:
+                        tmp[id_cls]['area/imgSize'].append(ratio)
 
 
-            # bbox = (l, t, r-l, b-t)
-            # if area > 0 and w > 3 and h > 3:
-            #     annotations_train.append(create_sub_mask_annotation(
-            #         image_id, lj['ObjectClassId'], annotation_id, bbox, 0, area))
-            #     annotation_id += 1
-            #     if lj['ObjectClassId'] in category:  # category.keys()
-            #         pass
-            #     else:
-            #         category[lj['ObjectClassId']] = lj['ObjectClassName']
-            #     stat_train[lj['ObjectClassName']] += 1
-        print(tmp)
-        if get_img: 
-            stat_json['num_img'] += 1
-            for k in stat:
-                stat[k]['area/imgSize'].extend(tmp[k]['area/imgSize'])
+                # bbox = (l, t, r-l, b-t)
+                # if area > 0 and w > 3 and h > 3:
+                #     annotations_train.append(create_sub_mask_annotation(
+                #         image_id, lj['ObjectClassId'], annotation_id, bbox, 0, area))
+                #     annotation_id += 1
+                #     if lj['ObjectClassId'] in category:  # category.keys()
+                #         pass
+                #     else:
+                #         category[lj['ObjectClassId']] = lj['ObjectClassName']
+                #     stat_train[lj['ObjectClassName']] += 1
 
-    print("################3 stat \n", stat)
+            if get_img: 
+                stat_json['num_img'] += 1
+                for k in stat:
+                    stat[k]['area/imgSize'].extend(tmp[k]['area/imgSize'])
+        
+        # else: 
+        #     print(split)
+        #     break
 
     sum_stat = {}
     for k in stat.keys():
@@ -178,16 +186,28 @@ def main():
         num_bbox = len(data)
         if data:
             qual95 = (np.quantile(data, 0.05), np.quantile(data, 0.95))
+            mean = np.mean(data)
         else: 
+            print(f'no instance of {name}')
             qual95 = (0,0)
+            mean = 0
 
         sum_stat[k] = {}
         sum_stat[k]['name'] = name
         sum_stat[k]['num_bbox'] = num_bbox
         sum_stat[k]['qual95'] = qual95
+        sum_stat[k]['mean'] = mean
 
     stat_json['data'] = sum_stat
-    save_json(stat_json)
+
+    save_folder = ''
+    # save_folder = 'data/stat/industrial'
+    if filter:
+        save_folder = 'data/stat/plant-filtered'
+    else:
+        save_folder = 'data/stat/plant'
+
+    save_json(stat_json, save_folder)
 
     # for k in category:
     #     categories.append(create_category_entry(k, category[k]))
@@ -197,7 +217,7 @@ def main():
     #     json.dump(save_dict_train, f, indent=4)
 
     for k in stat.keys():
-        save_plot(stat[k])
+        save_plot(stat[k], save_folder)
 
 
 def save_json(stat: dict, folder: str = 'data/stat/area'):
