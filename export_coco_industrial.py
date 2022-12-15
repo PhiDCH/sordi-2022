@@ -97,7 +97,7 @@ def plot_bar(stat, title: str = 'template'):
 
 def main():
     conn = create_connection(
-        'SORDI-Data-Pipeline-Reader/SORDI-non-single-asserts.sqlite')
+        '../SORDI-Data-Pipeline-Reader/SORDI-non-single-asserts.sqlite')
     # conn = create_connection('/home/robotic/Downloads/phidch_ws/src/bmw-lab/scripts/SORDI-Data-Pipeline-Reader/SORDI-single-asserts.sqlite')
 
     sql = '''select rowid, * from frame'''
@@ -118,7 +118,7 @@ def main():
     tmp_stat = deepcopy(stat)
     # stat_train = stat.copy()
 
-    max_num_img = 30000
+    max_num_img = 1000
     i = 0
 
     filter = None
@@ -134,8 +134,7 @@ def main():
         fname = '/'.join([r for r in fname.split('/')[-4:]])
 
         split  = fname.split('/')[-3].split('_')[2]
-        # if split in ['h4022','h4023']:
-        if split in ['h4024','h4025']:
+        if split in ['h4022','h4023']:
             images_train.append(create_image_entry(image_id, fname, W, H))
             img_area = 921600 if W == 1280 else 230400
         
@@ -150,11 +149,14 @@ def main():
                 if w > 3 and h > 3:
                     ratio = area/img_area
                     if filter:
-                        min_ratio = filter['data'][str(id_cls)]['qual95'][0]
+                        min_ratio, max_ratio = filter['data'][str(id_cls)]['qual95']
                         min_ratio = min_ratio if min_ratio else 100/img_area
+                        max_ratio = max_ratio if max_ratio else 1.0
                         if ratio > min_ratio:
-                            # get_img = False
                             tmp[id_cls]['area/imgSize'].append(ratio)
+                        if ratio > max_ratio:
+                            get_img = False
+                            break
                     else:
                         tmp[id_cls]['area/imgSize'].append(ratio)
 
@@ -187,25 +189,31 @@ def main():
         if data:
             qual95 = (np.quantile(data, 0.05), np.quantile(data, 0.95))
             mean = np.mean(data)
+            minmax = (np.min(data), np.max(data))
+            print(f'{name} qual95 {qual95} minmax {minmax}')
         else: 
             print(f'no instance of {name}')
             qual95 = (0,0)
             mean = 0
+            minmax = (0,0)
 
         sum_stat[k] = {}
         sum_stat[k]['name'] = name
         sum_stat[k]['num_bbox'] = num_bbox
         sum_stat[k]['qual95'] = qual95
         sum_stat[k]['mean'] = mean
+        sum_stat[k]['minmax'] = minmax 
+
 
     stat_json['data'] = sum_stat
 
     save_folder = ''
-    # save_folder = 'data/stat/industrial'
     if filter:
-        save_folder = 'data/stat/plant-filtered'
+        save_folder = 'data/stat/industrial-filtered'
     else:
-        save_folder = 'data/stat/plant'
+        save_folder = 'data/stat/industrial'
+
+
 
     save_json(stat_json, save_folder)
 
@@ -234,7 +242,6 @@ def save_plot(stat: dict, folder: str = 'data/stat/area'):
         name = stat['name']
         plt.savefig(f'{folder}/{name}.png')
         plt.close()
-        print(f'save plot {name}, qual 95 {qual95}')
 
 
 if __name__ == '__main__':
