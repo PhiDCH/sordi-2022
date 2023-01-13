@@ -155,7 +155,7 @@ def main():
     print(f'val_plant_volume {val_plant_volume}')
     print(f'val_industrial_volume {val_industrial_volume}')
 
-
+    
     # for r in cur:
     #     # i += 1
     #     # if i > max_num_img:
