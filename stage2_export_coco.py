@@ -14,6 +14,11 @@ for cls in category:
     cate.append({"id": cls['Id'], "name": cls['Name']})
 annot["categories"] = cate
 
+annot["categories"] = [{
+            "id": 1008,
+            "name": "klt_box_empty"
+        }]
+
 
 def get_annot(gt_folder: str, img_folder:str, save_json:str, img_id_add=0):
     sample_img = {
