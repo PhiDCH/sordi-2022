@@ -9,6 +9,8 @@ YOLOX/YOLOX_outputs
 YOLOX/yolox.egg-info
 YOLOX/build
 
+stage2_output
+
 *.pth
 
 *.jpg
